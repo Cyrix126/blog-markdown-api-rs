@@ -10,6 +10,7 @@ use reqwest::Client;
 mod api;
 mod config;
 mod error;
+mod index;
 #[derive(Clone)]
 struct AppState {
     config: Config,
@@ -38,7 +39,7 @@ fn router(state: AppState) -> Router {
         .route("/post/:id", delete(delete_post))
         .route("/post/latest", get(latest))
         // index is generated at each request, so it is suggested to use a caching proxy that will get invalidated when write operation are done on posts (post,put,delete)
-        // .route("/index", get(index))
+        .route("/index", get(api::index))
         // same here, using a caching proxy is recommended.
         // .route("/rss", get(rss))
         .with_state(state)

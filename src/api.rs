@@ -1,4 +1,5 @@
-use std::{fs::DirEntry, path::PathBuf};
+use crate::index::generate_index;
+use std::{fs::DirEntry, path::PathBuf, str::FromStr};
 
 cfg_if::cfg_if! {
     if #[cfg(feature="update_cache")] {
@@ -9,11 +10,12 @@ use reqwest::{header::HOST, IntoUrl};
     }
 }
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Request, State},
     http::StatusCode,
     response::IntoResponse,
 };
-use chrono::{Local, NaiveDateTime};
+use chrono::{Local, Locale, NaiveDateTime};
+use reqwest::header::ACCEPT_LANGUAGE;
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
@@ -85,11 +87,16 @@ pub async fn delete_post(
     Ok(())
 }
 
-// pub async fn index(State(state): State<AppState>) -> Result<impl IntoResponse, AppError> {
-//     todo!("");
-//     // call function to generate index and return it.
-//     Ok(())
-// }
+pub async fn index(
+    State(state): State<AppState>,
+    request: Request,
+) -> Result<impl IntoResponse, AppError> {
+    // detect accept language to use right translation of dates.
+    let locale = detect_language(&request);
+    // call function to generate index and return it.
+    let index = generate_index(&state, locale)?;
+    Ok(index)
+}
 // pub async fn rss(
 //     State(state): State<AppState>,
 //     request: Request,
@@ -112,9 +119,23 @@ pub async fn latest(State(state): State<AppState>) -> Result<impl IntoResponse, 
     Ok(body)
 }
 
+fn detect_language(request: &Request) -> Locale {
+    if let Some(header_value) = request.headers().get(ACCEPT_LANGUAGE) {
+        if let Ok(str) = header_value.to_str() {
+            let vec = accept_language::parse(str);
+            if !vec.is_empty() {
+                if let Ok(value) = Locale::from_str(&vec[0]) {
+                    return value;
+                }
+            }
+        }
+    }
+    // if header is not present/invalid, fallback to english
+    Locale::en_GB
+}
+
 fn path_markdown(state: &AppState, id: &NaiveDateTime) -> PathBuf {
     let mut path = state.config.assets_path.to_owned();
-    path.push("posts");
     let name = format!("{id}.md");
     path.push(name);
     path

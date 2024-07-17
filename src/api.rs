@@ -35,7 +35,13 @@ pub async fn create_post(
     spawn(enclose::enc!((state) async move {
     let path = "/post/latest".to_string();
     let url = uri_with_pass(&state, &path);
-        invalidate_cache(state, url).await;
+    invalidate_cache(&state, url).await;
+    let path = "/rss".to_string();
+    let url = uri_with_pass(&state, &path);
+    invalidate_cache(&state, url).await;
+    let path = "/index".to_string();
+    let url = uri_with_pass(&state, &path);
+    invalidate_cache(&state, url).await;
     }));
     Ok((StatusCode::CREATED, datetime.to_string()))
 }
@@ -62,7 +68,13 @@ pub async fn update_post(
     spawn(enclose::enc!((state, id) async move {
     let path = format!("/post/{id}");
     let url = uri_with_pass(&state, &path);
-        invalidate_cache(state, url).await;
+    invalidate_cache(&state, url).await;
+    let path = "/rss".to_string();
+    let url = uri_with_pass(&state, &path);
+    invalidate_cache(&state, url).await;
+    let path = "/index".to_string();
+    let url = uri_with_pass(&state, &path);
+    invalidate_cache(&state, url).await;
     }));
 
     Ok(())
@@ -78,7 +90,13 @@ pub async fn delete_post(
     spawn(enclose::enc!((state, id) async move {
     let path = format!("/post/{id}");
     let url = uri_with_pass(&state, &path);
-        invalidate_cache(state, url).await;
+    invalidate_cache(&state, url).await;
+    let path = "/rss".to_string();
+    let url = uri_with_pass(&state, &path);
+    invalidate_cache(&state, url).await;
+    let path = "/index".to_string();
+    let url = uri_with_pass(&state, &path);
+    invalidate_cache(&state, url).await;
     }));
     Ok(())
 }

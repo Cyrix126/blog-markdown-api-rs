@@ -58,7 +58,7 @@ pub fn uri_with_pass(state: &AppState, path: &str) -> url::Url {
     url
 }
 #[cfg(feature = "update_cache")]
-pub async fn invalidate_cache(state: AppState, url: impl IntoUrl) {
+pub async fn invalidate_cache(state: &AppState, url: impl IntoUrl) {
     state
         .client
         .delete(url)

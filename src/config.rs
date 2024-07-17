@@ -13,10 +13,11 @@ pub struct Config {
     pub cache_uri: Url,
     #[cfg(feature = "update_cache")]
     pub cache_password: Option<PathBuf>,
-    #[cfg(feature = "update_cache")]
     pub hostname: String,
     pub listen: SocketAddr,
     pub assets_path: PathBuf,
+    pub rss_title: String,
+    pub rss_subtitle: Option<String>,
 }
 
 impl Default for Config {
@@ -26,10 +27,11 @@ impl Default for Config {
             cache_uri: Url::parse("http://127.0.0.1:8001").unwrap(),
             #[cfg(feature = "update_cache")]
             cache_password: None,
-            #[cfg(feature = "update_cache")]
             hostname: "blog.example.net".to_string(),
             listen: SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8500),
             assets_path: PathBuf::from("/media/ssd/www/blog-markdown-api/assets"),
+            rss_title: "My blog".to_string(),
+            rss_subtitle: Some("A collection of my thoughts".to_string()),
         }
     }
 }

@@ -11,6 +11,8 @@ mod api;
 mod config;
 mod error;
 mod index;
+mod rss;
+mod utils;
 #[derive(Clone)]
 struct AppState {
     config: Config,
@@ -41,6 +43,6 @@ fn router(state: AppState) -> Router {
         // index is generated at each request, so it is suggested to use a caching proxy that will get invalidated when write operation are done on posts (post,put,delete)
         .route("/index", get(api::index))
         // same here, using a caching proxy is recommended.
-        // .route("/rss", get(rss))
+        .route("/rss", get(api::rss))
         .with_state(state)
 }

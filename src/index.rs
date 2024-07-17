@@ -1,8 +1,6 @@
-use std::path::Path;
-
 use chrono::{format::StrftimeItems, Locale, NaiveDateTime};
 
-use crate::{error::AppError, AppState};
+use crate::{error::AppError, utils::detect_title_md, AppState};
 const FORMAT_FILENAME: &str = "%Y-%m-%d %H:%M:%S";
 const FORMAT_DATETIME: &str = "";
 
@@ -34,14 +32,4 @@ pub fn generate_index(state: &AppState, locale: Locale) -> Result<String, AppErr
         }
     }
     Ok(markdown)
-}
-fn detect_title_md(md: &Path) -> Result<Option<String>, AppError> {
-    let contents = std::fs::read_to_string(md)?;
-    for line in contents.lines() {
-        if line.starts_with("# ") {
-            let title = line.replace("# ", "");
-            return Ok(Some(title));
-        }
-    }
-    Ok(None)
 }

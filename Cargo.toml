@@ -13,6 +13,7 @@ tower-http = {version="0.5", features=["fs"]}
 axum = {version="0.7", default-features= false, features= ["tokio", "http2"] }
 chrono = {version="0.4", default-features=false, features=["clock", "std", "serde", "now", "unstable-locales"]}
 accept-language = "3.1"
+atom_syndication = {version="0.12", default-features=false}
 ## better looking code
 enclose = "1.2"
 cfg-if = "1.0"

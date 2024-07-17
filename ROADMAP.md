@@ -5,7 +5,7 @@
 - [x] CRUD API for admin to manage posts and for reader to get the posts.
 - [x] endpoint for latest post
 - [x] generate an index markdown document of the posts.
-- [ ] generate a rss file.
+- [x] generate a rss file.
 
 - [ ] tests
 - [ ] documentation

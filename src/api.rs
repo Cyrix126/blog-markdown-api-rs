@@ -1,25 +1,21 @@
-use crate::index::generate_index;
-use std::{fs::DirEntry, path::PathBuf, str::FromStr};
+use crate::rss::generate_feed;
+use crate::utils::detect_language;
+use crate::{
+    index::generate_index,
+    utils::{invalidate_cache, path_markdown, uri_with_pass},
+};
+use std::{fs::DirEntry, path::PathBuf};
+use tokio::io::AsyncWriteExt;
 
-cfg_if::cfg_if! {
-    if #[cfg(feature="update_cache")] {
-use axum::http::HeaderValue;
-use tokio::spawn;
-use get_pass::get_password;
-use reqwest::{header::HOST, IntoUrl};
-    }
-}
 use axum::{
     extract::{Path, Request, State},
     http::StatusCode,
     response::IntoResponse,
 };
-use chrono::{Local, Locale, NaiveDateTime};
-use reqwest::header::ACCEPT_LANGUAGE;
-use tokio::{
-    fs::{read_to_string, remove_file, File},
-    io::AsyncWriteExt,
-};
+use chrono::{Local, NaiveDateTime};
+use tokio::fs::{read_to_string, remove_file, File};
+#[cfg(feature = "update_cache")]
+use tokio::spawn;
 
 use crate::{error::AppError, AppState};
 
@@ -97,17 +93,10 @@ pub async fn index(
     let index = generate_index(&state, locale)?;
     Ok(index)
 }
-// pub async fn rss(
-//     State(state): State<AppState>,
-//     request: Request,
-// ) -> Result<impl IntoResponse, AppError> {
-//     if let Some(lang) = request.headers().get(ACCEPT_LANGUAGE) {
-//         //
-//     }
-//     todo!("");
-//     // call function to generate rss and return it.
-//     Ok(())
-// }
+pub async fn rss(State(state): State<AppState>) -> Result<impl IntoResponse, AppError> {
+    generate_feed(&state)
+    // call function to generate rss and return it.
+}
 pub async fn latest(State(state): State<AppState>) -> Result<impl IntoResponse, AppError> {
     let mut paths: Vec<DirEntry> = std::fs::read_dir(state.config.assets_path)
         .unwrap()
@@ -117,47 +106,4 @@ pub async fn latest(State(state): State<AppState>) -> Result<impl IntoResponse, 
     let path = paths.last().unwrap().path();
     let body = read_to_string(path).await?;
     Ok(body)
-}
-
-fn detect_language(request: &Request) -> Locale {
-    if let Some(header_value) = request.headers().get(ACCEPT_LANGUAGE) {
-        if let Ok(str) = header_value.to_str() {
-            let vec = accept_language::parse(str);
-            if !vec.is_empty() {
-                if let Ok(value) = Locale::from_str(&vec[0]) {
-                    return value;
-                }
-            }
-        }
-    }
-    // if header is not present/invalid, fallback to english
-    Locale::en_GB
-}
-
-fn path_markdown(state: &AppState, id: &NaiveDateTime) -> PathBuf {
-    let mut path = state.config.assets_path.to_owned();
-    let name = format!("{id}.md");
-    path.push(name);
-    path
-}
-#[cfg(feature = "update_cache")]
-fn uri_with_pass(state: &AppState, path: &str) -> url::Url {
-    let mut url = state.config.cache_uri.to_owned();
-
-    if let Some(pass_path) = &state.config.cache_password {
-        let password = get_password(pass_path).unwrap();
-        url.set_password(Some(&password)).unwrap();
-    }
-    url.join(path).unwrap();
-    url
-}
-#[cfg(feature = "update_cache")]
-async fn invalidate_cache(state: AppState, url: impl IntoUrl) {
-    state
-        .client
-        .delete(url)
-        .header(HOST, HeaderValue::from_str(&state.config.hostname).unwrap())
-        .send()
-        .await
-        .unwrap();
 }

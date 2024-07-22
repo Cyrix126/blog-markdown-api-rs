@@ -51,12 +51,12 @@ fn router(state: AppState) -> Router {
 #[cfg(test)]
 mod test {
     use axum_test::TestServer;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     use crate::{config::Config, router, AppState};
 
     async fn app() -> Result<TestServer, Box<dyn std::error::Error>> {
-        let tmp_dir = TempDir::new("assets")?;
+        let tmp_dir = TempDir::new()?;
         let config = Config {
             assets_path: tmp_dir.into_path(),
             ..Default::default()

@@ -7,6 +7,6 @@
 - [x] generate an index markdown document of the posts.
 - [x] generate a rss file.
 
-- [ ] tests
+- [x] tests
 - [ ] documentation
 - [ ] generate openapi.json endpoint

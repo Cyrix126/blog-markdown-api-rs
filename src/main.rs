@@ -13,7 +13,7 @@ mod error;
 mod index;
 mod rss;
 mod utils;
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct AppState {
     config: Config,
     #[cfg(feature = "update_cache")]
@@ -48,12 +48,23 @@ fn router(state: AppState) -> Router {
         .with_state(state)
 }
 
+#[cfg(not(feature = "update_cache"))]
 #[cfg(test)]
 mod test {
+    use axum::http::StatusCode;
     use axum_test::TestServer;
     use tempfile::TempDir;
 
     use crate::{config::Config, router, AppState};
+    const DOC_MARKDOWN: &str = r#"#Title
+Text describing the markdown test
+## A second title
+**Bold description**"#;
+    const DOC_MARKDOWN_UPDATED: &str = r#"#Title
+Text describing the markdown test
+## A second title
+**Bold description**  
+Another text."#;
 
     async fn app() -> Result<TestServer, Box<dyn std::error::Error>> {
         let tmp_dir = TempDir::new()?;
@@ -74,11 +85,45 @@ mod test {
             .assert_status_not_found();
         Ok(())
     }
-    // create a post
-    // view the post
-    // modify the post
-    // view modified post
-    // view index
-    // view rss
-    // delete post
+    #[tokio::test]
+    async fn crud() -> Result<(), Box<dyn std::error::Error>> {
+        let app = app().await?;
+        // create
+        let rep = app.post("/post").text(DOC_MARKDOWN).await;
+        rep.assert_status(StatusCode::CREATED);
+        let id = rep.text();
+        // read
+        let path = ["/post/", &id].concat();
+        let rep = app.get(&path).await;
+        rep.assert_status_ok();
+        rep.assert_text(DOC_MARKDOWN);
+        // update
+        app.put(&path)
+            .text(DOC_MARKDOWN_UPDATED)
+            .await
+            .assert_status_ok();
+        // check update
+        app.get(&path).await.assert_text(DOC_MARKDOWN_UPDATED);
+        // check index
+        let rep = app.get("/index").await;
+        rep.assert_status_ok();
+        rep.assert_text(format!("\n[{id}](post/{id})\n"));
+        // check rss
+        let rep = app.get("/rss").await;
+        rep.assert_status_ok();
+        rep.assert_text(format!("<?xml version=\"1.0\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\"><title>My blog</title><id></id><updated>1970-01-01T00:00:00+00:00</updated><link href=\"https://blog.example.net/rss\" rel=\"alternate\"/><subtitle>A collection of my thoughts</subtitle><entry><title>{id}</title><id></id><updated>1970-01-01T00:00:00+00:00</updated><link href=\"https://blog.example.net/post/{id}\" rel=\"alternate\"/><content>{}</content></entry></feed>", DOC_MARKDOWN_UPDATED));
+        // delete
+        app.delete(&path).await.assert_status_ok();
+        // check deletion.
+        app.get(&path).await.assert_status_not_found();
+        // check index
+        let rep = app.get("/index").await;
+        rep.assert_status_ok();
+        rep.assert_text("");
+        // check rss
+        let rep = app.get("/rss").await;
+        rep.assert_status_ok();
+        rep.assert_text("<?xml version=\"1.0\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\"><title>My blog</title><id></id><updated>1970-01-01T00:00:00+00:00</updated><link href=\"https://blog.example.net/rss\" rel=\"alternate\"/><subtitle>A collection of my thoughts</subtitle></feed>");
+        Ok(())
+    }
 }

@@ -1,8 +1,10 @@
 use chrono::{format::StrftimeItems, Locale, NaiveDateTime};
 
-use crate::{error::AppError, utils::detect_title_md, AppState};
-const FORMAT_FILENAME: &str = "%Y-%m-%d %H:%M:%S";
-const FORMAT_DATETIME: &str = "";
+use crate::{
+    error::AppError,
+    utils::{detect_title_md, FORMAT_DATE},
+    AppState,
+};
 
 pub fn generate_index(state: &AppState, locale: Locale) -> Result<String, AppError> {
     let mut markdown = String::new();
@@ -18,9 +20,8 @@ pub fn generate_index(state: &AppState, locale: Locale) -> Result<String, AppErr
             .map_err(AppError::OsString)?
             .replace(".md", "");
         let link = format!("(post/{filename})");
-        if let Ok(date) = NaiveDateTime::parse_from_str(&filename, FORMAT_FILENAME) {
-            let fmtr =
-                date.format_with_items(StrftimeItems::new_with_locale(FORMAT_DATETIME, locale));
+        if let Ok(date) = NaiveDateTime::parse_from_str(&filename, FORMAT_DATE) {
+            let fmtr = date.format_with_items(StrftimeItems::new_with_locale(FORMAT_DATE, locale));
             let public_date = fmtr.to_string();
             let line;
             if let Some(title) = detect_title_md(&file.path())? {

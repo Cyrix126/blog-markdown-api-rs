@@ -14,6 +14,7 @@ use reqwest::{header::HOST, IntoUrl};
     }
 }
 use crate::{error::AppError, AppState};
+pub const FORMAT_DATE: &str = "%Y-%m-%d_%H-%M-%S";
 
 pub fn detect_title_md(md: &Path) -> Result<Option<String>, AppError> {
     let contents = std::fs::read_to_string(md)?;
@@ -41,7 +42,8 @@ pub fn detect_language(request: &Request) -> Locale {
 }
 pub fn path_markdown(state: &AppState, id: &NaiveDateTime) -> PathBuf {
     let mut path = state.config.assets_path.to_owned();
-    let name = format!("{id}.md");
+    let id = id.format(FORMAT_DATE).to_string();
+    let name = [&id, ".md"].concat();
     path.push(name);
     path
 }

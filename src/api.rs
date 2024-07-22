@@ -1,5 +1,5 @@
 use crate::rss::generate_feed;
-use crate::utils::detect_language;
+use crate::utils::{detect_language, FORMAT_DATE};
 use crate::{index::generate_index, utils::path_markdown};
 
 #[cfg(feature = "update_cache")]
@@ -24,7 +24,6 @@ use tokio::spawn;
 
 use crate::{error::AppError, AppState};
 
-const FORMATTING_DATE: &str = "%Y-%m-%d_%H-%M-%S";
 pub async fn create_post(
     State(state): State<AppState>,
     // check that the body is valid utf-8
@@ -51,7 +50,7 @@ pub async fn create_post(
     }));
     Ok((
         StatusCode::CREATED,
-        datetime.format(FORMATTING_DATE).to_string(),
+        datetime.format(FORMAT_DATE).to_string(),
     ))
 }
 pub async fn read_post(
@@ -150,7 +149,7 @@ where
             .extract::<Path<String>>()
             .await
             .map_err(IntoResponse::into_response)?;
-        if let Ok(date) = NaiveDateTime::parse_from_str(&path, FORMATTING_DATE) {
+        if let Ok(date) = NaiveDateTime::parse_from_str(&path, FORMAT_DATE) {
             Ok(Self(date))
         } else {
             Err(StatusCode::BAD_REQUEST.into_response())

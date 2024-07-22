@@ -30,6 +30,7 @@ get_pass = {git = "https://github.com/Cyrix126/get_pass", optional=true}
 # macro feature enabled to get nicer error with #[debug_handler]
 axum = {version="0.7", default-features=false, features=["macros"]}
 axum-test = "15.3"
+tempdir = "0.3"
 [features]
-default=["update_cache"]
+default=[]
 update_cache=["reqwest", "get_pass"]

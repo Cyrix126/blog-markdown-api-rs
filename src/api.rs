@@ -1,9 +1,14 @@
 use crate::rss::generate_feed;
 use crate::utils::detect_language;
-use crate::{
-    index::generate_index,
-    utils::{invalidate_cache, path_markdown, uri_with_pass},
-};
+use crate::{index::generate_index, utils::path_markdown};
+
+#[cfg(feature = "update_cache")]
+use crate::utils::{invalidate_cache, uri_with_pass};
+
+use axum::extract::FromRequestParts;
+use axum::http::request::Parts;
+use axum::response::Response;
+use axum::{async_trait, RequestPartsExt};
 use std::{fs::DirEntry, path::PathBuf};
 use tokio::io::AsyncWriteExt;
 
@@ -19,6 +24,7 @@ use tokio::spawn;
 
 use crate::{error::AppError, AppState};
 
+const FORMATTING_DATE: &str = "%Y-%m-%d_%H-%M-%S";
 pub async fn create_post(
     State(state): State<AppState>,
     // check that the body is valid utf-8
@@ -43,11 +49,14 @@ pub async fn create_post(
     let url = uri_with_pass(&state, &path);
     invalidate_cache(&state, url).await;
     }));
-    Ok((StatusCode::CREATED, datetime.to_string()))
+    Ok((
+        StatusCode::CREATED,
+        datetime.format(FORMATTING_DATE).to_string(),
+    ))
 }
 pub async fn read_post(
     State(state): State<AppState>,
-    Path(id): Path<NaiveDateTime>,
+    DateValid(id): DateValid,
 ) -> Result<impl IntoResponse, AppError> {
     let path = path_markdown(&state, &id);
     let body = read_to_string(path).await.map_err(|_| AppError::NotFound)?;
@@ -56,7 +65,7 @@ pub async fn read_post(
 pub async fn update_post(
     State(state): State<AppState>,
     // check that the path is a valid datetime
-    Path(id): Path<NaiveDateTime>,
+    DateValid(id): DateValid,
     body: String,
 ) -> Result<impl IntoResponse, AppError> {
     let path = path_markdown(&state, &id);
@@ -81,7 +90,7 @@ pub async fn update_post(
 }
 pub async fn delete_post(
     State(state): State<AppState>,
-    Path(id): Path<NaiveDateTime>,
+    DateValid(id): DateValid,
 ) -> Result<impl IntoResponse, AppError> {
     let path: PathBuf = path_markdown(&state, &id);
     remove_file(path).await?;
@@ -124,4 +133,27 @@ pub async fn latest(State(state): State<AppState>) -> Result<impl IntoResponse, 
     let path = paths.last().unwrap().path();
     let body = read_to_string(path).await?;
     Ok(body)
+}
+
+// Define a custom extractor that parses a NaiveDateTime from the request path
+pub struct DateValid(NaiveDateTime);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for DateValid
+where
+    S: Send + Sync,
+{
+    type Rejection = Response;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let path = parts
+            .extract::<Path<String>>()
+            .await
+            .map_err(IntoResponse::into_response)?;
+        if let Ok(date) = NaiveDateTime::parse_from_str(&path, FORMATTING_DATE) {
+            Ok(Self(date))
+        } else {
+            Err(StatusCode::BAD_REQUEST.into_response())
+        }
+    }
 }

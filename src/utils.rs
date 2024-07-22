@@ -3,9 +3,8 @@ use std::{
     str::FromStr,
 };
 
-use axum::extract::Request;
+use axum::{extract::Request, http::header::ACCEPT_LANGUAGE};
 use chrono::{Locale, NaiveDateTime};
-use reqwest::header::ACCEPT_LANGUAGE;
 
 cfg_if::cfg_if! {
     if #[cfg(feature="update_cache")] {
